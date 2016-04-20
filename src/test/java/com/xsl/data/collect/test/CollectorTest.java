@@ -1,6 +1,6 @@
 package com.xsl.data.collect.test;
 
-import com.xsl.data.collect.Collector;
+import com.xsl.data.collect.kafka.KafkaCollector;
 import org.junit.Test;
 
 /**
@@ -10,7 +10,7 @@ public class CollectorTest {
 
     @Test
     public void testCreate() {
-        Collector.Builder builder = new Collector.Builder();
-        Collector collector = builder.build();
+        KafkaCollector.Builder builder = new KafkaCollector.Builder();
+        KafkaCollector collector = builder.build();
     }
 }
