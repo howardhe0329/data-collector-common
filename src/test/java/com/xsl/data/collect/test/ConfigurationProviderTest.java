@@ -31,4 +31,11 @@ public class ConfigurationProviderTest {
         }
 
     }
+
+    @Test
+    public void testLoad1() {
+        ConfigurationProvider provider = new ConfigurationProvider();
+        provider.load("test.properties").forEach((key, value) ->
+                System.out.printf("key: %s; value: %s\n", key, value));
+    }
 }

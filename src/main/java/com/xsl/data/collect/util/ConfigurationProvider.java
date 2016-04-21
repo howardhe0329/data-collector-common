@@ -12,13 +12,13 @@ import java.util.Properties;
  */
 public class ConfigurationProvider {
 
+    private static final String FILE_SEP = System.getProperty("file.separator");
+
     private final Logger LOGGER = LoggerFactory.getLogger(getClass());
     private File file;
 
     public ConfigurationProvider() {
-        String fileSeparator = System.getProperty("file.separator");
-        String path = ConfigurationProvider.class.getResource(fileSeparator).getPath();
-        this.file = new File(path + fileSeparator);
+        this.file = new File(getClassPath() + FILE_SEP);
     }
     
     public Properties loads() {
@@ -36,6 +36,16 @@ public class ConfigurationProvider {
             }
             return p;
         }
+    }
+
+    public Properties load(String fileName) {
+        File file = new File(getClassPath() + FILE_SEP + fileName);
+        return load(file);
+    }
+
+    private String getClassPath() {
+        String path = ConfigurationProvider.class.getResource(FILE_SEP).getPath();
+        return path;
     }
 
     private Properties load(File file) {
