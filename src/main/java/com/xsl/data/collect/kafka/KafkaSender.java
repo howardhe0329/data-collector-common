@@ -84,7 +84,8 @@ public class KafkaSender extends AbstractSender {
         kafkaConf.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
         kafkaConf.put(ProducerConfig.ACKS_CONFIG, acks);
         LOGGER.info(kafkaConf.toString());
-        String deliveryClassName = properties.getProperty(KafkaSenderConfiguration.DELIVERY_STRATEGY, BlockingDeliveryStrategy.class.getName());
+        String deliveryModeName = properties.getProperty(KafkaSenderConfiguration.DELIVERY_STRATEGY, DeliveryMode.SYNC.name());
+        String deliveryClassName = DeliveryMode.valueOf(deliveryModeName).toClassName();
         try {
             deliveryStrategy = (DeliveryStrategy) Class.forName(deliveryClassName).newInstance();
             if (deliveryStrategy instanceof BlockingDeliveryStrategy) {
