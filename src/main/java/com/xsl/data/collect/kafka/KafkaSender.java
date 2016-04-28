@@ -35,12 +35,12 @@ public class KafkaSender extends AbstractSender {
     @Override
     public void start() {
         if(debugMode.equals(DebugMode.ON)) {
-            LOGGER.warn("now is debug mode");
+            LOGGER.warn("KafkaSender is debug mode");
             super.start();
             return;
         }
+        LOGGER.info("Kafka Sender: {} starting... " + getName());
         try {
-            LOGGER.info("Starting Kafka Sender: " + getName());
             producer = new KafkaProducer<>(kafkaConf);
             LOGGER.info("Topic = " + topic.get());
             super.start();
@@ -49,15 +49,17 @@ public class KafkaSender extends AbstractSender {
             throw new DataCollectException("Unable to create Kafka Connections." +
                     " Check whether Kafka Brokers are up and that the data-collector can connect to it.", e);
         }
+        LOGGER.info("Kafka Sender: {} started. " + getName());
     }
 
     @Override
     public void stop() {
+        LOGGER.info("Kafka channel {} stopping...", getName());
         if (producer != null) {
             producer.close();
         }
-        LOGGER.info("Kafka channel {} stopped.", getName());
         super.stop();
+        LOGGER.info("Kafka channel {} stopped.", getName());
     }
 
     @Override

@@ -8,6 +8,7 @@
 */log/
 ## Directory-based project format:
 .idea/
+/log/
 # if you remove the above rule, at least ignore the following:
 
 # User-specific stuff:

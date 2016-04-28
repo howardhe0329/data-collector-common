@@ -16,15 +16,16 @@ public class KafkaCollector implements Collector {
 
     private Sender sender;
 
-    public KafkaCollector(Sender sender) {
-        sender.start();
+    private KafkaCollector(Sender sender) {
         this.sender = sender;
     }
 
+    @Override
     public void collect(Event event) {
         sender.send(event);
     }
 
+    @Override
     public void collect(String name, Event event) {
         sender.send(name, event);
     }
@@ -57,25 +58,27 @@ public class KafkaCollector implements Collector {
             if (debug != null) {
                 properties.setProperty(CommonConfiguration.DEBUG_MODE, debug ? DebugMode.ON.name() : DebugMode.OFF.name());
             }
-            String topic = kafkaConf.getTopic();
-            if(topic != null && !topic.isEmpty()) {
-                properties.setProperty(KafkaSenderConfiguration.TOPIC, topic);
-            }
-            String brokerList = kafkaConf.getBrokerList();
-            if(brokerList != null && !brokerList.isEmpty()) {
-                properties.setProperty(KafkaSenderConfiguration.BROKER_LIST, brokerList);
-            }
-            KafkaAcksMode kafkaAcksMode = kafkaConf.getAcks();
-            if(kafkaAcksMode != null) {
-                properties.setProperty(KafkaSenderConfiguration.REQUIRED_ACKS, kafkaAcksMode.getValue());
-            }
-            DeliveryMode deliveryMode = kafkaConf.getDeliveryMode();
-            if(deliveryMode != null) {
-                properties.setProperty(KafkaSenderConfiguration.DELIVERY_STRATEGY, deliveryMode.name());
-            }
-            Integer timeout = kafkaConf.getTimeout();
-            if(timeout != null) {
-                properties.setProperty(KafkaSenderConfiguration.DELIVERY_TIMEOUT, String.valueOf(timeout));
+            if(kafkaConf != null) {
+                String topic = kafkaConf.getTopic();
+                if(topic != null && !topic.isEmpty()) {
+                    properties.setProperty(KafkaSenderConfiguration.TOPIC, topic);
+                }
+                String brokerList = kafkaConf.getBrokerList();
+                if(brokerList != null && !brokerList.isEmpty()) {
+                    properties.setProperty(KafkaSenderConfiguration.BROKER_LIST, brokerList);
+                }
+                KafkaAcksMode kafkaAcksMode = kafkaConf.getAcks();
+                if(kafkaAcksMode != null) {
+                    properties.setProperty(KafkaSenderConfiguration.REQUIRED_ACKS, kafkaAcksMode.getValue());
+                }
+                DeliveryMode deliveryMode = kafkaConf.getDeliveryMode();
+                if(deliveryMode != null) {
+                    properties.setProperty(KafkaSenderConfiguration.DELIVERY_STRATEGY, deliveryMode.name());
+                }
+                Integer timeout = kafkaConf.getTimeout();
+                if(timeout != null) {
+                    properties.setProperty(KafkaSenderConfiguration.DELIVERY_TIMEOUT, String.valueOf(timeout));
+                }
             }
             sender.configure(properties);
             sender.start();
