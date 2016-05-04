@@ -166,6 +166,7 @@ public class LocalSender extends AbstractSender {
         try {
             fileChannel.write(ByteBuffer.wrap(
                     new StringBuilder(new String(event.getBody())).append('\n').toString().getBytes()));
+            fileChannel.force(true);
         } catch (IOException e) {
             LOGGER.error("Unable to write file, " + this.activeFile, e);
         }
