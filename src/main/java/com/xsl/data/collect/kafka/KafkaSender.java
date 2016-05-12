@@ -85,6 +85,12 @@ public class KafkaSender extends AbstractSender {
         kafkaConf.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         kafkaConf.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
         kafkaConf.put(ProducerConfig.ACKS_CONFIG, acks);
+        String metadataTimeoutMs = properties.getProperty(KafkaSenderConfiguration.METADATA_FETCH_TIMEOUT_MS
+                , KafkaSenderConfiguration.DEFAULT_METADATA_FETCH_TIMEOUT_MS);
+        String requestTimeoutMs = properties.getProperty(KafkaSenderConfiguration.REQUEST_TIMEOUT_MS
+                , KafkaSenderConfiguration.DEFAULT_REQUEST_TIMEOUT_MS);
+        kafkaConf.put(ProducerConfig.METADATA_FETCH_TIMEOUT_CONFIG, Integer.valueOf(metadataTimeoutMs));
+        kafkaConf.put(ProducerConfig.TIMEOUT_CONFIG, Integer.valueOf(requestTimeoutMs));
         LOGGER.info(kafkaConf.toString());
         String deliveryModeName = properties.getProperty(KafkaSenderConfiguration.DELIVERY_STRATEGY, DeliveryMode.SYNC.name());
         String deliveryClassName = DeliveryMode.valueOf(deliveryModeName).toClassName();
