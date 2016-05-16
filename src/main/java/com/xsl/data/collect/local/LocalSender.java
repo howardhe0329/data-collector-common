@@ -64,7 +64,7 @@ public class LocalSender extends AbstractSender {
             }
             return false;
         });
-        if(fileNameArray.length == 0) {
+        if(fileNameArray == null || fileNameArray.length == 0) {
             int pos = fileName.lastIndexOf(".");
             this.activeFile.renameTo(new File(directory, fileName.substring(0, pos + 1)
                     + lastDay.toString() + fileName.substring(pos)));
