@@ -9,8 +9,8 @@ public class LocalConf {
 
     private String directory;
     private String fileName;
-    private boolean immediateFlush;
-    private int bufferSize;
+    private Boolean immediateFlush;
+    private Integer bufferSize;
 
     public LocalConf directory(String directory) {
         this.directory = directory;
@@ -32,12 +32,19 @@ public class LocalConf {
         return this;
     }
 
-    public Properties toPreperties() {
-        Properties properties = new Properties();
-        properties.setProperty(LocalSenderConfiguration.FILE_DIRECTORY, directory);
-        properties.setProperty(LocalSenderConfiguration.FILE_NAME, fileName);
-        properties.setProperty(LocalSenderConfiguration.FILE_FLUSH, String.valueOf(immediateFlush));
-        properties.setProperty(LocalSenderConfiguration.BUFFER_SIZE, String.valueOf(bufferSize));
+    public Properties toPreperties(Properties properties) {
+        if(directory != null && !directory.isEmpty()) {
+            properties.setProperty(LocalSenderConfiguration.FILE_DIRECTORY, directory);
+        }
+        if(fileName != null || !fileName.isEmpty()) {
+            properties.setProperty(LocalSenderConfiguration.FILE_NAME, fileName);
+        }
+        if(immediateFlush != null) {
+            properties.setProperty(LocalSenderConfiguration.FILE_FLUSH, String.valueOf(immediateFlush));
+        }
+        if(bufferSize != null) {
+            properties.setProperty(LocalSenderConfiguration.BUFFER_SIZE, String.valueOf(bufferSize));
+        }
         return properties;
     }
 
@@ -74,11 +81,11 @@ public class LocalConf {
         this.fileName = fileName;
     }
 
-    public boolean isImmediateFlush() {
+    public Boolean isImmediateFlush() {
         return immediateFlush;
     }
 
-    public int getBufferSize() {
+    public Integer getBufferSize() {
         return bufferSize;
     }
 

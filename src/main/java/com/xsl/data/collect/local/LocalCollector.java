@@ -58,14 +58,7 @@ public class LocalCollector implements Collector {
                 properties.setProperty(CommonConfiguration.DEBUG_MODE, debug ? DebugMode.ON.name() : DebugMode.OFF.name());
             }
             if(localConf != null) {
-                String directory = localConf.getDirectory();
-                if(directory != null || !directory.isEmpty()) {
-                    properties.setProperty(LocalSenderConfiguration.FILE_DIRECTORY, directory);
-                }
-                String fileName = localConf.getFileName();
-                if(fileName != null || !fileName.isEmpty()) {
-                    properties.setProperty(LocalSenderConfiguration.FILE_NAME, fileName);
-                }
+                localConf.toPreperties(properties);
             }
             sender.configure(properties);
             sender.start();
