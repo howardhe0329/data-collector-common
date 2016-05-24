@@ -27,11 +27,11 @@ public class LocalSender extends AbstractSender {
     private File directory;
     private File activeFile;
     private String fileName;
-    private FileChannel fileChannel;
     private RandomAccessFile randomAccessFile;
     private LocalDate beforeDay;
+    private boolean isImmediateFlush;
+    private ByteBuffer buffer;
     private Lock lock = new ReentrantLock(true);
-
 
     public LocalSender() {
         setName(SendMode.LOCAL.name());
@@ -59,12 +59,12 @@ public class LocalSender extends AbstractSender {
 
     private void rename(LocalDate lastDay) {
         String[] fileNameArray = directory.list((dir, name) -> {
-            if(name.contains(lastDay.toString())) {
+            if (name.contains(lastDay.toString())) {
                 return true;
             }
             return false;
         });
-        if(fileNameArray == null || fileNameArray.length == 0) {
+        if (fileNameArray == null || fileNameArray.length == 0) {
             int pos = fileName.lastIndexOf(".");
             this.activeFile.renameTo(new File(directory, fileName.substring(0, pos + 1)
                     + lastDay.toString() + fileName.substring(pos)));
@@ -75,12 +75,7 @@ public class LocalSender extends AbstractSender {
     private void open() {
         try {
             randomAccessFile = new RandomAccessFile(this.activeFile, "rw");
-            fileChannel = randomAccessFile.getChannel();
-            long position = fileChannel.position();
-            long size = fileChannel.size();
-            if (size != position) {
-                fileChannel.position(fileChannel.size());
-            }
+            randomAccessFile.seek(randomAccessFile.length());
         } catch (FileNotFoundException e) {
             LOGGER.error("Not found File: " + this.activeFile, e);
         } catch (IOException e) {
@@ -98,17 +93,15 @@ public class LocalSender extends AbstractSender {
 
     private void close() {
         try {
-            if (fileChannel != null) {
-                fileChannel.force(true);
-                fileChannel.close();
-            }
+            lock.lock();
+            flush();
             if (randomAccessFile != null) {
                 randomAccessFile.close();
             }
         } catch (IOException e) {
             LOGGER.error("Unable to close File Channel. Exception follows.", e);
         } finally {
-            fileChannel = null;
+            lock.unlock();
             randomAccessFile = null;
         }
     }
@@ -126,9 +119,9 @@ public class LocalSender extends AbstractSender {
             throw new IllegalArgumentException("Directory may not be null");
         }
         this.directory = new File(directory);
-        if(!this.directory.exists()) {
+        if (!this.directory.exists()) {
             boolean res = this.directory.mkdirs();
-            if(!res) {
+            if (!res) {
                 throw new ConfigurationException("mkdir error, please check directory is invalid or use chmod check" + directory);
             }
         }
@@ -137,6 +130,9 @@ public class LocalSender extends AbstractSender {
             throw new IllegalArgumentException("File's name may not be null");
         }
         this.activeFile = new File(this.directory, this.fileName);
+        this.isImmediateFlush = Boolean.valueOf(properties.getProperty(LocalSenderConfiguration.FILE_FLUSH, "true"));
+        int bufferSize = Integer.valueOf(properties.getProperty(LocalSenderConfiguration.BUFFER_SIZE, String.valueOf(LocalSenderConfiguration.DEFAULT_BUFFER_SIZE)));
+        this.buffer = ByteBuffer.allocate(bufferSize);
     }
 
     @Override
@@ -146,10 +142,10 @@ public class LocalSender extends AbstractSender {
             return;
         }
         LocalDate lastDay = LocalDate.now().plusDays(-1);
-        if(lastDay.isAfter(beforeDay)) {
+        if (lastDay.isAfter(beforeDay)) {
             try {
                 lock.lock();
-                if(lastDay.isAfter(beforeDay)) {
+                if (lastDay.isAfter(beforeDay)) {
                     close();
                     rename(lastDay);
                     open();
@@ -159,16 +155,57 @@ public class LocalSender extends AbstractSender {
                 lock.unlock();
             }
         }
-        if(fileChannel == null) {
-            LOGGER.error("FileChannel is null");
-            return;
-        }
+        byte[] bytes = new StringBuilder(new String(event.getBody())).append('\n').toString().getBytes();
+        write(bytes, 0, bytes.length);
+    }
+
+    /**
+     * 将数据写入到Buffer中
+     * @param bytes 数据字节数组
+     * @param offset 启始位置
+     * @param length 数据长度
+     */
+    private void write(final byte[] bytes, int offset, int length) {
         try {
-            fileChannel.write(ByteBuffer.wrap(
-                    new StringBuilder(new String(event.getBody())).append('\n').toString().getBytes()));
-            fileChannel.force(true);
-        } catch (IOException e) {
-            LOGGER.error("Unable to write file, " + this.activeFile, e);
+            lock.lock();
+            int chunk;
+            do {
+                // 如果将要写入Buffer中的数据长度大于Buffer中剩余的大小, 则直接flush到磁盘中
+                if (length > buffer.remaining()) {  // remaining方法是 limit - position
+                    flush();
+                }
+                // 设置chunk为 数据长度与Buffer剩余的大小中的最小值. 是防止数据长度大于缓冲区中的剩余空间长度.
+                chunk = Math.min(length, buffer.remaining());
+                // 将数据写入到Buffer
+                buffer.put(bytes, offset, chunk);
+                offset += chunk;
+                length -= chunk;
+            } while (length > 0);
+            //是否立即flush
+            if (isImmediateFlush) {
+                flush();
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * flush到磁盘里
+     */
+    private void flush() {
+        try {
+            lock.lock();
+            buffer.flip(); // 缓冲区模式, 切换为读模式 limit = position; position = 0; mark = -1
+            try {
+                randomAccessFile.write(buffer.array(), 0, buffer.limit());  // limit == position
+                LOGGER.debug("Buffer [ Buffer.limit: {}, Buffer.capacity: {}] flush to file [{}] success", buffer.limit(), buffer.capacity(), this.activeFile.getName());
+            } catch (IOException e) {
+                LOGGER.error("Unable to flush file, " + this.activeFile, e);
+            }
+            buffer.clear(); // 清空缓冲区中的数据 position = 0; limit = capacity; mark = -1
+        } finally {
+            lock.unlock();
         }
     }
 
