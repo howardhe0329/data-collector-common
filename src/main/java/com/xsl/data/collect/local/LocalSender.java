@@ -130,8 +130,10 @@ public class LocalSender extends AbstractSender {
             throw new IllegalArgumentException("File's name may not be null");
         }
         this.activeFile = new File(this.directory, this.fileName);
-        this.isImmediateFlush = Boolean.valueOf(properties.getProperty(LocalSenderConfiguration.FILE_FLUSH, "true"));
-        int bufferSize = Integer.valueOf(properties.getProperty(LocalSenderConfiguration.BUFFER_SIZE, String.valueOf(LocalSenderConfiguration.DEFAULT_BUFFER_SIZE)));
+        this.isImmediateFlush = Boolean.valueOf(properties.getProperty(
+                LocalSenderConfiguration.FILE_FLUSH, String.valueOf(LocalSenderConfiguration.DEFAULT_IMMEDIATE_FLUSH)));
+        int bufferSize = Integer.valueOf(
+                properties.getProperty(LocalSenderConfiguration.BUFFER_SIZE, String.valueOf(LocalSenderConfiguration.DEFAULT_BUFFER_SIZE)));
         this.buffer = ByteBuffer.allocate(bufferSize);
     }
 
@@ -161,7 +163,8 @@ public class LocalSender extends AbstractSender {
 
     /**
      * 将数据写入到Buffer中
-     * @param bytes 数据字节数组
+     *
+     * @param bytes  数据字节数组
      * @param offset 启始位置
      * @param length 数据长度
      */
