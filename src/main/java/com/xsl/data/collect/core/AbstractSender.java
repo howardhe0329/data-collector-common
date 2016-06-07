@@ -1,5 +1,7 @@
 package com.xsl.data.collect.core;
 
+import com.xsl.data.collect.metrics.Counter;
+
 import java.util.Properties;
 
 /**
@@ -9,6 +11,7 @@ public abstract class AbstractSender implements Sender, LifecycleAware, Configur
 
     private String name;
     private LifecycleState lifecycleState;
+    protected Counter counter;
 
     public AbstractSender() {
         lifecycleState = LifecycleState.IDLE;
@@ -22,11 +25,13 @@ public abstract class AbstractSender implements Sender, LifecycleAware, Configur
     @Override
     public void start() {
         lifecycleState = LifecycleState.START;
+        counter.start();
     }
 
     @Override
     public void stop() {
         lifecycleState = LifecycleState.STOP;
+        counter.stop();
     }
 
     @Override

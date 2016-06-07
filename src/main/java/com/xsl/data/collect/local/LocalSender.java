@@ -3,6 +3,7 @@ package com.xsl.data.collect.local;
 import com.xsl.data.collect.common.*;
 import com.xsl.data.collect.core.AbstractSender;
 import com.xsl.data.collect.event.Event;
+import com.xsl.data.collect.metrics.Counter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -135,6 +136,9 @@ public class LocalSender extends AbstractSender {
         int bufferSize = Integer.valueOf(
                 properties.getProperty(LocalSenderConfiguration.BUFFER_SIZE, String.valueOf(LocalSenderConfiguration.DEFAULT_BUFFER_SIZE)));
         this.buffer = ByteBuffer.allocate(bufferSize);
+        if(counter == null) {
+            counter = new Counter(Counter.Type.LOCAL);
+        }
     }
 
     @Override
@@ -143,22 +147,32 @@ public class LocalSender extends AbstractSender {
             LOGGER.info("print event: {}", new String(event.getBody()));
             return;
         }
-        LocalDate lastDay = LocalDate.now().plusDays(-1);
-        if (lastDay.isAfter(beforeDay)) {
-            try {
-                lock.lock();
-                if (lastDay.isAfter(beforeDay)) {
-                    close();
-                    rename(lastDay);
-                    open();
-                    beforeDay = lastDay;
+        long startTime = System.currentTimeMillis();
+        try {
+            LocalDate lastDay = LocalDate.now().plusDays(-1);
+            if (lastDay.isAfter(beforeDay)) {
+                try {
+                    lock.lock();
+                    if (lastDay.isAfter(beforeDay)) {
+                        close();
+                        rename(lastDay);
+                        open();
+                        beforeDay = lastDay;
+                    }
+                } finally {
+                    lock.unlock();
                 }
-            } finally {
-                lock.unlock();
             }
+            byte[] bytes = new StringBuilder(new String(event.getBody())).append('\n').toString().getBytes();
+            write(bytes, 0, bytes.length);
+            counter.incrementSuccessCount();
+        } catch (Exception e) {
+            counter.incrementFailedCount();
+            throw e;
+        } finally {
+            long endTime = System.currentTimeMillis();
+            counter.addAndGetSendTime(endTime - startTime);
         }
-        byte[] bytes = new StringBuilder(new String(event.getBody())).append('\n').toString().getBytes();
-        write(bytes, 0, bytes.length);
     }
 
     /**

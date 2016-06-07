@@ -3,6 +3,7 @@ package com.xsl.data.collect.kafka;
 import com.xsl.data.collect.common.*;
 import com.xsl.data.collect.core.AbstractSender;
 import com.xsl.data.collect.event.Event;
+import com.xsl.data.collect.metrics.Counter;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -103,29 +104,40 @@ public class KafkaSender extends AbstractSender {
         } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
             throw new ConfigurationException("DeliveryStrategy Class error, class name: " + deliveryClassName, e);
         }
+        if(counter == null) {
+            counter = new Counter(Counter.Type.KAFKA);
+        }
     }
 
     @Override
     public void send(Event event) {
-        if(debugMode.equals(DebugMode.ON)) {
-            LOGGER.info("print event: {}", new String(event.getBody()));
-            return;
-        }
         String topicName = topic.get();
         if(topicName == null || topicName.isEmpty()) {
             throw new IllegalStateException("Topic was not specified. please set topic");
         }
-        ProducerRecord<String, byte[]> record = new ProducerRecord<>(topic.get(), null, event.getBody());
-        deliveryStrategy.send(producer, record, event, (obj, e) -> LOGGER.error("Sending events to Kafka failed. event: " + obj, e));
+        doSend(topicName, event);
     }
 
     @Override
     public void send(String topic, Event event) {
+        doSend(topic, event);
+    }
+
+    private void doSend(String topic, Event event) {
         if(debugMode.equals(DebugMode.ON)) {
             LOGGER.info("print event: {}", new String(event.getBody()));
             return;
         }
+        long startTime = System.currentTimeMillis();
         ProducerRecord<String, byte[]> record = new ProducerRecord<>(topic, null, event.getBody());
-        deliveryStrategy.send(producer, record, event, (obj, e) -> LOGGER.error("Sending events to Kafka failed. event: " + obj, e));
+        try {
+            deliveryStrategy.send(producer, record, event, (obj, e) -> LOGGER.error("Sending events to Kafka failed. event: " + obj, e));
+            counter.incrementSuccessCount();
+        } catch (Exception e) {
+            counter.incrementFailedCount();
+            throw e;
+        } finally {
+            counter.addAndGetSendTime(System.currentTimeMillis() - startTime);
+        }
     }
 }
