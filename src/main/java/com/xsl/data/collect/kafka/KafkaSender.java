@@ -65,6 +65,9 @@ public class KafkaSender extends AbstractSender {
 
     @Override
     public void configure(Properties properties) {
+        if(counter == null) {
+            counter = new Counter(Counter.Type.KAFKA);
+        }
         String debugModeName = properties.getProperty(CommonConfiguration.DEBUG_MODE, DebugMode.OFF.name());
         debugMode = DebugMode.valueOf(debugModeName.toUpperCase());
         if(debugMode.equals(DebugMode.ON)) {
@@ -103,9 +106,6 @@ public class KafkaSender extends AbstractSender {
             }
         } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
             throw new ConfigurationException("DeliveryStrategy Class error, class name: " + deliveryClassName, e);
-        }
-        if(counter == null) {
-            counter = new Counter(Counter.Type.KAFKA);
         }
     }
 

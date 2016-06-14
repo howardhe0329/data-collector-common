@@ -109,6 +109,9 @@ public class LocalSender extends AbstractSender {
 
     @Override
     public void configure(Properties properties) {
+        if(counter == null) {
+            counter = new Counter(Counter.Type.LOCAL);
+        }
         String debugModeName = properties.getProperty(CommonConfiguration.DEBUG_MODE, DebugMode.OFF.name());
         debugMode = DebugMode.valueOf(debugModeName.toUpperCase());
         if (debugMode.equals(DebugMode.ON)) {
@@ -136,9 +139,6 @@ public class LocalSender extends AbstractSender {
         int bufferSize = Integer.valueOf(
                 properties.getProperty(LocalSenderConfiguration.BUFFER_SIZE, String.valueOf(LocalSenderConfiguration.DEFAULT_BUFFER_SIZE)));
         this.buffer = ByteBuffer.allocate(bufferSize);
-        if(counter == null) {
-            counter = new Counter(Counter.Type.LOCAL);
-        }
     }
 
     @Override
